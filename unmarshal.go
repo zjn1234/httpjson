@@ -6,15 +6,20 @@ import (
 	"reflect"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 var (
-	NilError = errors.New("argument nil error")
+	nilError = errors.New("argument nil error")
+)
+
+var (
+	sliceDelim string = " "
 )
 
 func Unmarshal(r *http.Request, v interface{}) error{
 	if r == nil || v == nil {
-		return NilError
+		return nilError
 	}
 
 	valSet := reflect.ValueOf(v)
@@ -28,6 +33,7 @@ func Unmarshal(r *http.Request, v interface{}) error{
 		case reflect.String:
 			valSet.Elem().Field(i).SetString(r.FormValue(key))
 			break;
+
 		case reflect.Int:
 			value, err := strconv.Atoi(r.FormValue(key))
 			if err != nil {
@@ -35,12 +41,20 @@ func Unmarshal(r *http.Request, v interface{}) error{
 			}
 			valSet.Elem().Field(i).SetInt(int64(value))
 			break;
+
 		case reflect.Bool:
 			value, err := strconv.ParseBool(r.FormValue(key))
 			if err != nil {
 				return err
 			}
 			valSet.Elem().Field(i).SetBool(value)
+			break;
+
+		case reflect.Slice:
+			value := strings.Fields(r.FormValue(key))
+			valSet.Elem().Field(i).Set(reflect.ValueOf(value))
+			break;
+
 		default:
 			return errors.New(fmt.Sprintln("Not Supported Type ", valSet.Elem().Field(i).Kind()))
 			break;
