@@ -2,7 +2,8 @@ httpjson
 ==
 unmarsh post data from http
 -
-##go server
+go server
+-
 ***
 struct define whith json tag
 ***
@@ -12,7 +13,8 @@ struct define whith json tag
         Sstring string      `json:"string`
         Slice []string       `json:"slice"`
     }
-##html
+html
+-
     <form method="POST" action="assign_profile">
         <table>
         <tr><td>int:</td><td><input type="text" name="int" value="5"/></td></tr>
@@ -21,7 +23,8 @@ struct define whith json tag
         </table>
     </form>
 
-##main
+main
+-
 ***
 slice only support string now
 ***
