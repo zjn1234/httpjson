@@ -1,65 +1,81 @@
 package httpjson
 
 import (
-	"net/http"
-	"github.com/pkg/errors"
-	"reflect"
 	"fmt"
+	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 var (
 	nilError = errors.New("argument nil error")
 )
 
-var (
-	sliceDelim string = " "
-)
-
-func Unmarshal(r *http.Request, v interface{}) error{
+func Unmarshal(r *http.Request, v interface{}) error {
 	if r == nil || v == nil {
 		return nilError
 	}
 
-	valSet := reflect.ValueOf(v)
+	valSet := reflect.ValueOf(v).Elem()
+	valType := reflect.TypeOf(v).Elem()
+	numField := valType.NumField()
 
-	for i := 0; i < valSet.Type().Elem().NumField(); i++ {
-		key := valSet.Elem().Type().Field(i).Tag.Get("json")
-		if len(key) == 0 {
-			return errors.New(fmt.Sprintf("%s Field has no json tags", valSet.Type().Field(i).Name))
+	for i := 0; i < numField; i++ {
+		fieldType := valType.Field(i)
+		fieldValue := valSet.Field(i)
+
+		key := findMatchKey(fieldType)
+		formValue := r.FormValue(key)
+		if formValue == "" {
+			continue
 		}
-		switch valSet.Elem().Field(i).Kind() {
+
+		switch fieldValue.Kind() {
 		case reflect.String:
-			valSet.Elem().Field(i).SetString(r.FormValue(key))
-			break;
+			fieldValue.SetString(formValue)
+			break
 
 		case reflect.Int:
-			value, err := strconv.Atoi(r.FormValue(key))
+			value, err := strconv.Atoi(formValue)
 			if err != nil {
 				return err
 			}
-			valSet.Elem().Field(i).SetInt(int64(value))
-			break;
+			fieldValue.SetInt(int64(value))
+			break
 
 		case reflect.Bool:
-			value, err := strconv.ParseBool(r.FormValue(key))
+			value, err := strconv.ParseBool(formValue)
 			if err != nil {
 				return err
 			}
-			valSet.Elem().Field(i).SetBool(value)
-			break;
+			fieldValue.SetBool(value)
+			break
 
 		case reflect.Slice:
-			value := strings.Fields(r.FormValue(key))
-			valSet.Elem().Field(i).Set(reflect.ValueOf(value))
-			break;
+			err := setSlice(fieldValue, formValue)
+			if err != nil {
+				return err
+			}
+			break
 
 		default:
-			return errors.New(fmt.Sprintln("Not Supported Type ", valSet.Elem().Field(i).Kind()))
-			break;
+			return fmt.Errorf("not supported type: %v", fieldValue.Kind())
 		}
 	}
 	return nil
 }
 
+func findMatchKey(field reflect.StructField) string {
+	//first json tag
+	jsonKey := field.Tag.Get("json")
+	if jsonKey != "" {
+		return jsonKey
+	}
+
+	//second field name
+	//convert to lower-case letter
+	return strings.ToLower(field.Name)
+}
