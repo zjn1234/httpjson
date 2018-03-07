@@ -36,7 +36,6 @@ func Unmarshal(r *http.Request, v interface{}) error {
 		switch fieldValue.Kind() {
 		case reflect.String:
 			fieldValue.SetString(formValue)
-			break
 
 		case reflect.Int:
 			value, err := strconv.Atoi(formValue)
@@ -44,7 +43,6 @@ func Unmarshal(r *http.Request, v interface{}) error {
 				return err
 			}
 			fieldValue.SetInt(int64(value))
-			break
 
 		case reflect.Bool:
 			value, err := strconv.ParseBool(formValue)
@@ -52,14 +50,12 @@ func Unmarshal(r *http.Request, v interface{}) error {
 				return err
 			}
 			fieldValue.SetBool(value)
-			break
 
 		case reflect.Slice:
 			err := setSlice(fieldValue, formValue)
 			if err != nil {
 				return err
 			}
-			break
 
 		default:
 			return fmt.Errorf("not supported type: %v", fieldValue.Kind())
